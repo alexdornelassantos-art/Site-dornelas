@@ -408,6 +408,9 @@ function sanitizeCatalog(list){return (Array.isArray(list)?list:[]).filter(x=>{
     && !/^churrasco$/.test(norm);
 }).map(x=>{const y={...x};delete y.img;return y})}
 let products=sanitizeCatalog(loadProducts());
+// Se o catálogo salvo estiver vazio após uma atualização, reconstruir automaticamente
+// a partir do catálogo padrão já sanitizado, evitando que um cache vazio deixe o site sem produtos.
+if(!products.length) products=sanitizeCatalog(DEFAULT_PRODUCTS.map(x=>({...x})));
 localStorage.setItem('dornelas_emporio_produtos_v5',JSON.stringify(products));
 // Configuração padrão das carnes de churrasco vendidas por peça: 500g a 1kg.
 const CHURRASCO_PIECA_IDS=[12,13,14];
