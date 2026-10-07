@@ -409,10 +409,14 @@ function sanitizeCatalog(list){return (Array.isArray(list)?list:[]).filter(x=>{
     && !/^rabo( defumado)?$/.test(norm)
     && !/^churrasco$/.test(norm);
 }).map(x=>{const y={...x};delete y.img;return y})}
+const DEFAULT_VISIBLE_PRODUCTS=sanitizeCatalog(DEFAULT_PRODUCTS.map(x=>({...x,active:true})));
 let products=sanitizeCatalog(loadProducts());
-// Se o catálogo salvo estiver vazio após uma atualização, reconstruir automaticamente
-// a partir do catálogo padrão já sanitizado, evitando que um cache vazio deixe o site sem produtos.
-if(!products.length) products=sanitizeCatalog(DEFAULT_PRODUCTS.map(x=>({...x})));
+// O catálogo público nunca pode ficar vazio por causa de cache/localStorage.
+// Se não houver produtos ativos suficientes, reconstruímos a vitrine a partir dos padrões.
+const visibleProducts=products.filter(x=>x.active!==false);
+if(visibleProducts.length<3){
+  products=DEFAULT_VISIBLE_PRODUCTS.map(x=>({...x}));
+}
 localStorage.setItem('dornelas_emporio_produtos_v5',JSON.stringify(products));
 // Configuração padrão das carnes de churrasco vendidas por peça: 500g a 1kg.
 const CHURRASCO_PIECA_IDS=[12,13,14];
@@ -445,7 +449,13 @@ async function productImage(x){
   return U+'photo-1523986490752-c28064f26be3?auto=format&fit=crop&w=900&q=85';
 }
 async function render(){
-const g=document.getElementById('grid'); const best=document.getElementById('bestSellers'); if(!g)return; g.innerHTML=''; if(best){best.innerHTML='<div class="best-sellers-heading"><h2>Produtos mais vendidos</h2><span>Os favoritos da Dornela\'s</span></div>'; const ids=[19,25,4]; for(const id of ids){const x=products.find(p=>p.id===id); if(!x||x.active===false)continue; const img=await productImage(x); const price=x.p>0?`${money(x.p)} <small>/ ${esc(x.u)}</small>`:'Preço a consultar'; const opts=saleControls(x); const addButton=x.status==='replenishment'?`<button class="add" disabled>EM REPOSIÇÃO</button>`:`<button class="add" onclick="addSelected(${x.id})">ADICIONAR AO PEDIDO</button>`; best.insertAdjacentHTML('beforeend',`<article class="card"><div class="card-top"><img src="${esc(img)}" alt="${esc(x.n)}" onerror="this.style.display='none';this.parentElement.classList.add('img-fallback')"></div><div class="card-body"><div class="tag">Mais vendido</div><h3>${esc(x.n)}</h3><p>${esc(x.d)}</p>${x.kit?`<div class="kit-contents"><b>Vem no kit:</b> ${esc(x.kit)}</div>`:''}<span class="price">${price}</span>${opts}${addButton}</div></article>`);}}
+const g=document.getElementById('grid'); const best=document.getElementById('bestSellers'); if(!g)return;
+const visible=products.filter(x=>x.active!==false);
+if(!visible.length){
+  products=DEFAULT_VISIBLE_PRODUCTS.map(x=>({...x}));
+  localStorage.setItem('dornelas_emporio_produtos_v5',JSON.stringify(products));
+}
+g.innerHTML=''; if(best){best.innerHTML='<div class="best-sellers-heading"><h2>Produtos mais vendidos</h2><span>Os favoritos da Dornela\'s</span></div>'; const ids=[19,25,4]; for(const id of ids){const x=products.find(p=>p.id===id); if(!x||x.active===false)continue; const img=await productImage(x); const price=x.p>0?`${money(x.p)} <small>/ ${esc(x.u)}</small>`:'Preço a consultar'; const opts=saleControls(x); const addButton=x.status==='replenishment'?`<button class="add" disabled>EM REPOSIÇÃO</button>`:`<button class="add" onclick="addSelected(${x.id})">ADICIONAR AO PEDIDO</button>`; best.insertAdjacentHTML('beforeend',`<article class="card"><div class="card-top"><img src="${esc(img)}" alt="${esc(x.n)}" onerror="this.style.display='none';this.parentElement.classList.add('img-fallback')"></div><div class="card-body"><div class="tag">Mais vendido</div><h3>${esc(x.n)}</h3><p>${esc(x.d)}</p>${x.kit?`<div class="kit-contents"><b>Vem no kit:</b> ${esc(x.kit)}</div>`:''}<span class="price">${price}</span>${opts}${addButton}</div></article>`);}}
  const groups=[
   ['defumados','Defumados'],
   ['churrasco','Churrasco'],
