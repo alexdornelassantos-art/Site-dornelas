@@ -390,7 +390,7 @@ function loadProducts(){
     return saved.map(x=>{const d=DEFAULT_PRODUCTS.find(y=>y.id===x.id||y.n===x.n);return {...(d||{}),...x,img:x.img||((d&&d.img)||'')}});
   }catch(e){return DEFAULT_PRODUCTS.map(x=>({...x}));}
 }
-const REMOVED_PRODUCT_IDS=new Set([12,15,17,18,20,21]);
+const REMOVED_PRODUCT_IDS=new Set([12,15,17,18,20]);
 const REMOVED_PRODUCT_NAMES=new Set(["Pernil","Linguiça para Churrasco","Queijo Cabacinha","Queijo com Ervas","Kit Tábua","Kit Tábua de Frios","Kit Brunch"]);
 const REMOVED_PRODUCT_EXACT=new Set(["rabo","rabo defumado","pancheta","salmão","salmão fresco","salmão fresco inteiro","hambúrguer","hamburguer","tábua de frios","tabua de frios","churrasco"]);
 function normalizeProductName(v){return String(v||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().trim();}
