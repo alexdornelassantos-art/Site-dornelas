@@ -377,7 +377,9 @@ async function loadRemoteProducts(){
     if(!r.ok)return false;
     const data=await r.json();
     if(!Array.isArray(data.products)||!data.products.length)return false;
-    products=sanitizeCatalog(data.products.map(x=>{const d=DEFAULT_PRODUCTS.find(y=>y.id===x.id||y.n===x.n);return {...(d||{}),...x,img:''}}));
+    const remoteProducts=sanitizeCatalog(data.products.map(x=>{const d=DEFAULT_PRODUCTS.find(y=>y.id===x.id||y.n===x.n);return {...(d||{}),...x,img:''}}));
+    if(!remoteProducts.length)return false;
+    products=remoteProducts;
     localStorage.setItem('dornelas_emporio_produtos_v5',JSON.stringify(products));
     return true;
   }catch(e){return false}
