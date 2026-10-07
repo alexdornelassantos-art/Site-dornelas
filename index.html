@@ -428,26 +428,11 @@ const esc=s=>String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 async function productImage(x){
   const n=String(x?.n||'').toLowerCase();
   const U='https://images.unsplash.com/';
-  if(n.includes('bacon pernil')) return U+'photo-1694983361629-0363ab0d1b49?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('bacon barriga')||n.includes('pancheta')) return U+'photo-1749294241404-916a9a7f3d44?auto=format&fit=crop&w=900&q=85';
   if(n.includes('bacon')) return U+'photo-1694983361629-0363ab0d1b49?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('costela')) return U+'photo-1761315413349-d303df5723ca?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('lingui')) return U+'photo-1600797828610-468bb21b6f8e?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('lombo')||n.includes('pernil')) return U+'photo-1523986490752-c28064f26be3?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('carré')||n.includes('carre')) return U+'photo-1523986490752-c28064f26be3?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('joelho')) return U+'photo-1703945530456-22774e1412bc?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('pé ')||n.endsWith('pé')||n.includes('pe suino')||n.includes('pe suíno')) return U+'photo-1703945530456-22774e1412bc?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('orelha')) return 'https://ak-d.tripcdn.com/images/1mi53224x8ur4qmcp44B8.jpg?proc=source%2Ftrip';
-  if(n.includes('rabo')) return 'https://theblackfarmer.com/cdn/shop/files/pigtail.jpg?crop=center&height=719&v=1772635750&width=800';
-  if(n.includes('torresmo')) return 'https://ims.ev.mu/medium_shutterstock_2213013787_5c94fff278/medium_shutterstock_2213013787_5c94fff278.jpg';
   if(n.includes('feijoada')) return 'https://www.celebritycruises.com/blog/content/uploads/2022/08/south-american-food-feijoada-1536x1026.jpg';
-  if(n.includes('hambúrg')||n.includes('hamburg')) return U+'photo-1623945361498-849cb9074546?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('tábua')||n.includes('tabua')) return U+'photo-1744848279514-b6cbcf03b5f5?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('churrasco')) return U+'photo-1555939594-58d7cb561ad1?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('salmão')||n.includes('salmao')) return U+'photo-1467003909585-2f8a72700288?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('brunch')) return U+'photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=85';
-  return U+'photo-1523986490752-c28064f26be3?auto=format&fit=crop&w=900&q=85';
+  return '';
 }
+
 async function render(){
 const g=document.getElementById('grid'); const best=document.getElementById('bestSellers'); if(!g)return;
 const visible=products.filter(x=>x.active!==false);
