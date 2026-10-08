@@ -1,0 +1,18 @@
+{
+  "ok": false,
+  "applied": [
+    "normalização da agenda",
+    "revalidação das integrações",
+    "registro do diagnóstico"
+  ],
+  "changed": false,
+  "at": "2026-10-08T02:13:14.792Z",
+  "health": {
+    "ok": true,
+    "service": "dornelas-ia-agent",
+    "aiConfigured": true,
+    "imageConfigured": true,
+    "assetStorageConfigured": true,
+    "schedulerConfigured": false
+  }
+}
