@@ -1,6 +1,6 @@
 {
   "ok": false,
-  "checkedAt": "2026-10-08T02:13:31.810Z",
+  "checkedAt": "2026-10-08T09:08:47.468Z",
   "checks": [
     {
       "name": "IA",
@@ -18,7 +18,7 @@
     {
       "name": "Instagram",
       "ok": false,
-      "error": "Nenhuma conta Instagram profissional vinculada a uma Página foi encontrada. Use o botão Conectar Instagram."
+      "error": "A Meta autorizou o usuário, mas não entregou um Instagram profissional acessível ao aplicativo. O agente tentou Página e ativos do Business Manager usando o mesmo token."
     },
     {
       "name": "Agenda",
@@ -26,5 +26,5 @@
       "value": 0
     }
   ],
-  "priority": "Corrigir primeiro os itens marcados como erro."
+  "priority": "Meta está autorizada, mas o Instagram profissional não foi localizado. Vincule o Instagram profissional à Página correta e reconecte a Meta."
 }
