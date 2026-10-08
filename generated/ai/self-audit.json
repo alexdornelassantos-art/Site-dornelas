@@ -1,0 +1,30 @@
+{
+  "ok": false,
+  "checkedAt": "2026-10-08T02:10:40.898Z",
+  "checks": [
+    {
+      "name": "IA",
+      "ok": true,
+      "value": "gpt-6-luna"
+    },
+    {
+      "name": "Site",
+      "ok": true,
+      "value": {
+        "title": "Dornela's Empório — Loja Online",
+        "url": "https://iinteligenci.github.io/dorn/"
+      }
+    },
+    {
+      "name": "Instagram",
+      "ok": false,
+      "error": "Nenhuma conta Instagram profissional vinculada a uma Página foi encontrada. Use o botão Conectar Instagram."
+    },
+    {
+      "name": "Agenda",
+      "ok": true,
+      "value": 0
+    }
+  ],
+  "priority": "Corrigir primeiro os itens marcados como erro."
+}
