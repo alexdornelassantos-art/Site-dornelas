@@ -268,10 +268,10 @@ body{background:var(--paper);color:var(--ink);font-family:Acumin,Arial,sans-seri
  </div>
 </section>
 
-<section class="first-order">
-  <div class="offer">5% OFF NO PRIMEIRO PEDIDO</div>
-  <p>Conheça a Dornela's, escolha seus produtos e receba em casa.</p>
-  <span class="coupon">CUPOM: DORNELA5</span>
+<section class="first-order trust-intro">
+  <div class="offer">TRADIÇÃO FAMILIAR, SABOR ARTESANAL</div>
+  <p>Conheça nossos defumados, escolha seus produtos e fale diretamente com a equipe para confirmar seu pedido.</p>
+  <a class="trust-cta" href="#produtos">ESCOLHER PRODUTOS →</a>
 </section>
 
 <section class="trust-strip" aria-label="Diferenciais da loja">
@@ -287,6 +287,19 @@ body{background:var(--paper);color:var(--ink);font-family:Acumin,Arial,sans-seri
     <p>Uma experiência de empório que começa no fogo e termina à mesa.</p>
     <div class="heritage-line"><span>✦</span><b>FOGO</b><i>•</i><b>CARNE</b><i>•</i><b>SABOR</b><i>•</i><b>FAMÍLIA</b><span>✦</span></div>
   </div>
+</section>
+
+<section class="confidence-section" aria-label="Por que comprar na Dornela's">
+ <div class="confidence-wrap">
+  <div class="confidence-heading"><span>DO NOSSO FOGO PARA A SUA MESA</span><h2>Compre com mais confiança</h2><p>Queremos que você saiba quem prepara, como pedir e o que acontece depois da compra.</p></div>
+  <div class="confidence-grid">
+   <article class="confidence-card"><span class="confidence-icon">✦</span><h3>Tradição de família</h3><p>A história da Dornela’s é ligada à produção artesanal e ao cuidado com o sabor. Uma tradição que atravessa gerações.</p></article>
+   <article class="confidence-card"><span class="confidence-icon">♨</span><h3>Defumação artesanal</h3><p>Nosso diferencial está no processo de defumação e no cuidado dedicado aos produtos — sabor com identidade própria.</p></article>
+   <article class="confidence-card"><span class="confidence-icon">✓</span><h3>Pedido claro, sem surpresa</h3><p>Você confere os itens e informa o endereço. Antes de concluir, confirmamos o frete quando ele depender da cidade ou do envio.</p></article>
+   <article class="confidence-card"><span class="confidence-icon">♡</span><h3>Atendimento direto</h3><p>Seu pedido segue para nossa equipe pelo WhatsApp para confirmar disponibilidade, pagamento e entrega.</p></article>
+  </div>
+  <div class="confidence-footer"><b>Ficou com dúvida antes de comprar?</b><span>Fale com a gente. Preferimos esclarecer tudo antes de confirmar seu pedido.</span></div>
+ </div>
 </section>
 
 <section class="section compra" id="produtos">
@@ -516,21 +529,33 @@ function couponData(){return {code:(document.getElementById('coCoupon')?.value||
 function calculateDiscount(){return {code:'',amount:0,coupon:null}}
 function applyCoupon(){const r=calculateDiscount();const msg=document.getElementById('couponMsg');if(!r.code){msg.textContent='Digite um cupom.';msg.className='coupon-msg error';return updateCheckoutTotals()}if(r.error){msg.textContent=r.error;msg.className='coupon-msg error';return updateCheckoutTotals()}msg.textContent=`Cupom ${r.code} aplicado: -${money(r.amount)}.`;msg.className='coupon-msg ok';updateCheckoutTotals()}
 function updateCheckoutTotals(){
-  const city=document.getElementById('coCity').value;
+  const city=(document.getElementById('coCity')?.value||'').trim();
   const fee=isGrandeVitoria(city)?deliveryFee(city):null;
-  const disc=calculateDiscount().amount||0;
-  document.getElementById('checkoutDiscount').textContent=disc?'- '+money(disc):'R$ 0,00';
-  document.getElementById('checkoutDeliveryFee').textContent=fee===null?'A consultar':(fee===0?'Grátis':money(fee));
-  document.getElementById('checkoutGrandTotal').textContent=fee===null?'A confirmar':money(Math.max(0,orderTotal()-disc+fee));
+  const feeEl=document.getElementById('checkoutDeliveryFee');
+  const totalEl=document.getElementById('checkoutGrandTotal');
+  if(feeEl)feeEl.textContent=fee===null?'A consultar':(fee===0?'Grátis':money(fee));
+  if(totalEl)totalEl.textContent=fee===null?'A confirmar':money(Math.max(0,orderTotal()+fee));
 }
 function grandTotal(d){
   if(!isGrandeVitoria(d.city))return null;
   const fee=deliveryFee(d.city);
   if(fee===null)return null;
-  const disc=calculateDiscount().amount||0;
-  return Math.max(0,orderTotal()-disc+fee);
+  return Math.max(0,orderTotal()+fee);
 }
-function openCheckout(){const items=orderItems();if(!items.length)return alert('Adicione algum produto ao pedido.');document.getElementById('checkoutSummary').innerHTML=items.map(x=>`<div class="co-line"><span>${x.qty}x ${esc(x.n)}${x.weight_g?`<small>${x.weight_g>=1000?x.weight_g/1000+' kg':x.weight_g+' g'} por unidade</small>`:''}</span><b>${x.p?money(x.line_total):'A consultar'}</b></div>`).join('');loadCheckoutDraft();document.getElementById('coCoupon').value='';document.getElementById('couponMsg').textContent='';document.getElementById('couponMsg').className='coupon-msg';document.getElementById('checkoutProductsTotal').textContent=money(orderTotal());document.getElementById('checkoutModal').classList.add('show');updateDeliveryRoute()}
+function openCheckout(){
+  const items=orderItems();
+  if(!items.length){alert('Adicione algum produto ao pedido.');return}
+  const summary=document.getElementById('checkoutSummary');
+  if(!summary){alert('Não foi possível abrir o resumo do pedido. Atualize a página e tente novamente.');return}
+  summary.innerHTML=items.map(x=>'<div class="co-line"><span>'+x.qty+'x '+esc(x.n)+(x.weight_g?'<small>'+(x.weight_g>=1000?x.weight_g/1000+' kg':x.weight_g+' g')+' por unidade</small>':'')+'</span><b>'+(x.p?money(x.line_total):'A consultar')+'</b></div>').join('');
+  loadCheckoutDraft();
+  const productsTotal=document.getElementById('checkoutProductsTotal');
+  if(productsTotal)productsTotal.textContent=money(orderTotal());
+  const modal=document.getElementById('checkoutModal');
+  if(!modal){alert('Não foi possível abrir a finalização. Atualize a página e tente novamente.');return}
+  modal.classList.add('show');
+  updateDeliveryRoute();
+}
 function closeCheckout(){document.getElementById('checkoutModal').classList.remove('show')}
 function updateDeliveryRoute(){
   const city=document.getElementById('coCity').value.trim();
@@ -558,8 +583,20 @@ function updateDeliveryRoute(){
   }
   updateCheckoutTotals();
 }
-function checkoutData(){return {name:coName.value.trim(),phone:coPhone.value.trim(),type:coType.value,cep:coCep.value.trim(),street:coStreet.value.trim(),number:coNumber.value.trim(),complement:coComplement.value.trim(),neighborhood:coNeighborhood.value.trim(),city:coCity.value.trim(),state:coState.value.trim().toUpperCase(),reference:coReference.value.trim()}}
-function validateCheckout(){const d=checkoutData();for(const k of ['name','phone','type','street','number','neighborhood','city','state'])if(!d[k]){alert('Preencha todos os campos obrigatórios.');return null}if(d.state.length!==2){alert('Informe a UF com 2 letras.');return null}const c=calculateDiscount();if(c.code&&c.error){alert(c.error);return null}return d}
+function checkoutData(){
+  const value=id=>String(document.getElementById(id)?.value||'').trim();
+  return {name:value('coName'),phone:value('coPhone'),type:value('coType'),cep:value('coCep'),street:value('coStreet'),number:value('coNumber'),complement:value('coComplement'),neighborhood:value('coNeighborhood'),city:value('coCity'),state:value('coState').toUpperCase(),reference:value('coReference')};
+}
+function validateCheckout(){
+  const d=checkoutData();
+  const required=[['name','coName'],['phone','coPhone'],['type','coType'],['street','coStreet'],['number','coNumber'],['neighborhood','coNeighborhood'],['city','coCity'],['state','coState']];
+  for(const [key,id] of required){
+    if(!d[key]){alert('Preencha os campos obrigatórios marcados com *.');document.getElementById(id)?.focus();return null}
+  }
+  if(d.phone.replace(/\D/g,'').length<10){alert('Confira o WhatsApp com DDD.');document.getElementById('coPhone')?.focus();return null}
+  if(d.state.length!==2){alert('Informe a UF com 2 letras.');document.getElementById('coState')?.focus();return null}
+  return d;
+}
 function saveCheckoutDraft(d){localStorage.setItem('dornelas_checkout_draft',JSON.stringify(d))}
 async function lookupCep(){
  const el=document.getElementById('coCep'); if(!el)return;
@@ -602,21 +639,10 @@ function whatsappOrder(d,reason){
 async function payOnline(){
   const d=validateCheckout();if(!d)return;
   saveCheckoutDraft(d);
-  if(!isGrandeVitoria(d.city))return whatsappOrder(d,'Meu endereço está fora da Grande Vitória. Quero consultar frete, prazo e possibilidade de envio.');
+  if(!isGrandeVitoria(d.city))return whatsappOrder(d,'Meu endereço está fora da Grande Vitória. Quero consultar disponibilidade, frete e prazo de envio.');
   const fee=deliveryFee(d.city);
   if(fee===null)return whatsappOrder(d,'Quero confirmar o valor do frete para minha cidade antes de fechar o pedido.');
-  const endpoint=(localStorage.getItem('dornelas_payment_endpoint')||'').trim();
-  if(!endpoint)return whatsappOrder(d,'Quero finalizar este pedido pelo WhatsApp e combinar a forma de pagamento e a entrega.');
-  const disc=calculateDiscount();
-  try{
-    const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer:d,items:orderItems(),products_total:orderTotal(),discount_code:disc.code||null,discount_amount:disc.amount||0,delivery_fee:fee,total_amount:grandTotal(d),source:'dornelas-emporio'})});
-    const data=await r.json();
-    if(!r.ok||!data.checkout_url)throw new Error(data.message||'Pagamento indisponível');
-    window.location.href=data.checkout_url;
-  }catch(e){
-    alert('O pagamento não abriu agora. Vamos encaminhar o pedido para o vendedor.');
-    whatsappOrder(d,'Tentei pagar online, mas o pagamento não abriu. Por favor, me ajude a finalizar o pedido.');
-  }
+  return whatsappOrder(d,'Quero confirmar este pedido, a forma de pagamento e o prazo de entrega.');
 }
 function manageCoupons(){const current=activeCoupons();const desc=current.length?current.map(c=>`${c.code} — ${c.type==='fixed'?money(Number(c.value||0)):Number(c.value||0)+'%'}${Number(c.min||0)?' — mínimo '+money(Number(c.min)):''}`).join('\n'):'Nenhum cupom ativo.';const action=prompt('Cupons ativos:\n\n'+desc+'\n\nDigite 1 para criar/editar um cupom\nDigite 2 para remover todos os cupons.','1');if(action==='2'){localStorage.setItem('dornelas_coupons','[]');alert('Cupons removidos.');return}if(action!=='1')return;const code=(prompt('Código do cupom:','DORNELA5')||'').trim().toUpperCase();if(!code)return;const type=(prompt('Tipo de desconto: digite % para percentual ou R$ para valor fixo.','%')||'%').trim();const value=Number(String(prompt(type==='R$'?'Valor do desconto em R$':'Percentual de desconto',type==='R$'?'10':'5')||'').replace(',','.'));if(!Number.isFinite(value)||value<=0)return alert('Valor inválido.');const min=Number(String(prompt('Pedido mínimo em R$ (0 = sem mínimo):','0')||'0').replace(',','.'));if(!Number.isFinite(min)||min<0)return alert('Pedido mínimo inválido.');const coupon={code,type:type==='R$'?'fixed':'percent',value,min,active:true};localStorage.setItem('dornelas_coupons',JSON.stringify([coupon]));alert(`Cupom ${code} configurado com sucesso.`)}
 function setPaymentEndpoint(){const v=prompt('Endpoint HTTPS do backend de pagamento (Mercado Pago):',localStorage.getItem('dornelas_payment_endpoint')||'');if(v!==null){localStorage.setItem('dornelas_payment_endpoint',v.trim());alert(v.trim()?'Endpoint salvo.':'Endpoint removido.')}}
@@ -644,7 +670,7 @@ render();
 <button class="admin-float" onclick="openAdmin()">Painel</button>
 <div id="cartModal" class="modal" onclick="if(event.target===this)closeCart()"><div class="modal-box cart-box"><button class="x" onclick="closeCart()">×</button><h2>Seu pedido</h2><p>Confira os itens antes de enviar para o WhatsApp.</p><div id="cartList" class="cart-modal-list"></div><div class="cart-footer"><div><b>Total</b><div id="cartTotal">R$ 0,00</div></div><div><button class="clear-cart" onclick="clearCart()">Limpar carrinho</button> <button class="checkout-btn" onclick="openCheckout()">FINALIZAR PEDIDO</button></div></div></div></div>
 
-<div id="checkoutModal" class="modal" onclick="if(event.target===this)closeCheckout()"><div class="modal-box checkout-box"><button class="x" onclick="closeCheckout()">×</button><h2>Finalizar pedido</h2><p>Informe seus dados e o endereço de entrega.</p><div class="checkout-grid"><section><h3>Seus dados</h3><label>Nome completo *<input id="coName" autocomplete="name"></label><label>WhatsApp *<input id="coPhone" inputmode="tel" autocomplete="tel"></label><h3>Endereço de entrega</h3><label>Tipo *<select id="coType"><option value="">Selecione</option><option>Casa</option><option>Apartamento</option><option>Comercial</option><option>Outro</option></select></label><div class="co-row"><label>CEP<input id="coCep" inputmode="numeric" maxlength="9" placeholder="00000-000" autocomplete="postal-code" onblur="lookupCep()" oninput="if(this.value.replace(/\D/g,'').length===8)lookupCep()"></label><label>UF *<input id="coState" maxlength="2" placeholder="ES"></label></div><label>Rua / Avenida *<input id="coStreet"></label><div class="co-row"><label>Número *<input id="coNumber"></label><label>Complemento<input id="coComplement"></label></div><label>Bairro *<input id="coNeighborhood"></label><label>Cidade *<input id="coCity" oninput="updateDeliveryRoute()"></label><label>Ponto de referência<input id="coReference"></label><div id="deliveryRoute" class="delivery-route">Informe a cidade para verificarmos a modalidade de entrega.</div></section><section><h3>Resumo</h3><div id="checkoutSummary" class="checkout-summary"></div><div class="co-total"><span>Produtos</span><b id="checkoutProductsTotal">R$ 0,00</b></div><div class="co-total co-delivery"><span>Entrega</span><b id="checkoutDeliveryFee">A consultar</b></div><div class="co-total"><span>Total</span><b id="checkoutGrandTotal">R$ 0,00</b></div><div class="co-note"><b>Prazo de entrega:</b> na Grande Vitória, entregamos de segunda a sábado, em até 1 dia após a confirmação do pagamento. Fora da região, o vendedor consulta transportadora, prazo e frete.</div><button id="payOnlineBtn" class="checkout-btn co-main" onclick="payOnline()" disabled>CONTINUAR PARA PAGAMENTO</button><button class="whatsapp-alt" onclick="const d=validateCheckout();if(d)whatsappOrder(d,isGrandeVitoria(d.city)?'Quero confirmar entrega e pagamento.':'Meu endereço está fora da Grande Vitória. Quero consultar frete, prazo e envio.')">FALAR COM VENDEDOR NO WHATSAPP</button></section></div></div></div>
+<div id="checkoutModal" class="modal" onclick="if(event.target===this)closeCheckout()"><div class="modal-box checkout-box"><button class="x" onclick="closeCheckout()">×</button><h2>Finalizar pedido</h2><p>Informe seus dados e o endereço de entrega.</p><div class="checkout-grid"><section><h3>Seus dados</h3><label>Nome completo *<input id="coName" autocomplete="name"></label><label>WhatsApp *<input id="coPhone" inputmode="tel" autocomplete="tel"></label><h3>Endereço de entrega</h3><label>Tipo *<select id="coType"><option value="">Selecione</option><option>Casa</option><option>Apartamento</option><option>Comercial</option><option>Outro</option></select></label><div class="co-row"><label>CEP<input id="coCep" inputmode="numeric" maxlength="9" placeholder="00000-000" autocomplete="postal-code" onblur="lookupCep()" oninput="if(this.value.replace(/\D/g,'').length===8)lookupCep()"></label><label>UF *<input id="coState" maxlength="2" placeholder="ES"></label></div><label>Rua / Avenida *<input id="coStreet"></label><div class="co-row"><label>Número *<input id="coNumber"></label><label>Complemento<input id="coComplement"></label></div><label>Bairro *<input id="coNeighborhood"></label><label>Cidade *<input id="coCity" oninput="updateDeliveryRoute()"></label><label>Ponto de referência<input id="coReference"></label><div id="deliveryRoute" class="delivery-route">Informe a cidade para verificarmos a modalidade de entrega.</div></section><section><h3>Resumo</h3><div id="checkoutSummary" class="checkout-summary"></div><div class="co-total"><span>Produtos</span><b id="checkoutProductsTotal">R$ 0,00</b></div><div class="co-total co-delivery"><span>Entrega</span><b id="checkoutDeliveryFee">A consultar</b></div><div class="co-total"><span>Total</span><b id="checkoutGrandTotal">R$ 0,00</b></div><div class="co-note"><b>Como funciona:</b> enviamos seu pedido à equipe para confirmar disponibilidade, valor do frete e forma de pagamento. Na Grande Vitória, a previsão é de segunda a sábado, em até 1 dia após a confirmação; confirme o prazo no atendimento.</div><button id="payOnlineBtn" class="checkout-btn co-main" onclick="payOnline()" disabled>CONTINUAR PARA PAGAMENTO</button><button class="whatsapp-alt" onclick="const d=validateCheckout();if(d)whatsappOrder(d,isGrandeVitoria(d.city)?'Quero confirmar entrega e pagamento.':'Meu endereço está fora da Grande Vitória. Quero consultar frete, prazo e envio.')">FALAR COM VENDEDOR NO WHATSAPP</button></section></div></div></div>
 <div id="adminGate" class="modal"><div class="modal-box"><button class="x" onclick="closeAdmin()">×</button><h2>Painel Dornela’s</h2><p>Acesso exclusivo do administrador.</p><input id="adminPass" type="password" placeholder="Senha" onkeydown="if(event.key==='Enter')enterAdmin()"><button onclick="enterAdmin()">Entrar</button></div></div>
 <div id="admin" class="modal"><div class="modal-box admin-box"><button class="x" onclick="logoutAdmin()">×</button><h2>Painel administrativo</h2><p class="admin-note">Aqui você pode cadastrar, editar, excluir produtos e substituir as fotos a qualquer momento.</p><div class="admin-actions"><button onclick="addProduct()">＋ Adicionar produto</button><button onclick="saveAdmin()">Salvar alterações</button><button onclick="setWhats()">WhatsApp</button><button onclick="setPaymentEndpoint()">Pagamento online</button><button onclick="setDeliveryFee()">Entrega / frete</button><button onclick="changePass()">Trocar senha</button></div><div id="adminList"></div></div></div>
 <style>
@@ -654,5 +680,26 @@ render();
 .category-heading span{font-family:Acumin,Arial,sans-serif;color:var(--brown);font-size:13px;text-transform:uppercase;letter-spacing:1px;}
 @media(max-width:600px){.category-heading{margin-top:28px}.category-heading h2{font-size:26px}.category-heading span{font-size:11px}}
 .coupon-box{margin:12px 0 8px;padding:12px;background:#e7d7bd;border-radius:10px}.coupon-box label{margin:0}.coupon-btn{width:100%;margin-top:7px;padding:10px 12px;border:1px solid #314b35;border-radius:8px;background:#314b35;color:#fff;font-weight:800}.coupon-msg{min-height:16px;margin-top:6px;font-size:12px}.coupon-msg.ok{color:#314b35}.coupon-msg.error{color:#a84a3b}.checkout-box{max-width:900px}.checkout-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:24px}.checkout-grid section{background:#efe2cb;border:1px solid #d7c8b1;border-radius:14px;padding:16px}.checkout-grid h3{font-family:Locatro,Georgia,serif;color:#a84a3b;margin:4px 0 12px}.checkout-grid label{display:block;font-size:12px;font-weight:700;margin:8px 0}.checkout-grid input,.checkout-grid select{display:block;width:100%;box-sizing:border-box;margin-top:4px}.co-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}.delivery-route{margin-top:14px;padding:12px;border-radius:10px;background:#e7d7bd;font-size:13px}.delivery-route span{display:block;margin-top:4px}.delivery-route.local{border-left:4px solid #314b35}.delivery-route.outside{border-left:4px solid #a84a3b}.checkout-summary{border-top:1px solid #d7c8b1;border-bottom:1px solid #d7c8b1;margin:8px 0 12px}.co-line{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #dfd2bd;font-size:13px}.co-line:last-child{border-bottom:0}.co-total{display:flex;justify-content:space-between;font-size:18px;margin:14px 0}.co-note{font-size:12px;line-height:1.45;opacity:.82;margin-bottom:12px}.co-main{width:100%;margin:6px 0}.checkout-btn:disabled{opacity:.5;cursor:not-allowed}.whatsapp-alt{width:100%;padding:11px 14px;border:1px solid #314b35;border-radius:8px;background:transparent;color:#314b35;font-weight:700}.checkout-box p{margin-top:-4px;opacity:.8}@media(max-width:760px){.checkout-grid{grid-template-columns:1fr}.checkout-box{padding:18px}.co-row{grid-template-columns:1fr 1fr}}
+
+/* Confiança e conversão */
+.trust-intro{padding:24px 18px 26px;text-align:center;background:var(--creme);border-top:1px solid #d8bd82;border-bottom:1px solid #d8bd82}
+.trust-intro .offer{font-size:clamp(22px,3vw,32px);line-height:1.15;color:var(--telha);font-family:Locatro,Georgia,serif}
+.trust-intro p{max-width:650px;margin:10px auto 16px;color:var(--marrom);font-size:15px;line-height:1.55}
+.trust-cta{display:inline-flex;align-items:center;justify-content:center;padding:13px 22px;border-radius:999px;background:var(--telha);color:#fff;text-decoration:none;font-weight:800;letter-spacing:.5px}
+.confidence-section{padding:52px 20px;background:#fffaf0;color:var(--ink);border-bottom:1px solid #e6d7bd}
+.confidence-wrap{max-width:1120px;margin:0 auto}
+.confidence-heading{text-align:center;max-width:760px;margin:0 auto 26px}
+.confidence-heading>span{font-size:11px;letter-spacing:2px;font-weight:800;color:var(--telha)}
+.confidence-heading h2{font-family:Locatro,Georgia,serif;color:var(--telha);font-size:clamp(30px,4vw,42px);margin:8px 0}
+.confidence-heading p{margin:0;color:#72513e;line-height:1.6}
+.confidence-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.confidence-card{padding:22px 18px;background:#fff;border:1px solid #e7d8c1;border-radius:14px;box-shadow:0 5px 18px rgba(73,42,22,.05)}
+.confidence-icon{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:50%;background:#f6e7cf;color:var(--telha);font-size:19px}
+.confidence-card h3{margin:13px 0 8px;color:var(--telha);font-family:Locatro,Georgia,serif;font-size:20px}
+.confidence-card p{margin:0;color:#6d5949;font-size:14px;line-height:1.6}
+.confidence-footer{margin-top:18px;padding:16px 18px;border-radius:12px;background:#f5ead9;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;text-align:center;color:var(--marrom)}
+.confidence-footer b{color:var(--telha)}
+@media(max-width:760px){.confidence-section{padding:38px 16px}.confidence-grid{grid-template-columns:1fr 1fr;gap:10px}.confidence-card{padding:17px 14px}.confidence-card h3{font-size:18px}.confidence-card p{font-size:13px}.trust-intro{padding:22px 16px}}
+@media(max-width:420px){.confidence-grid{grid-template-columns:1fr}}
 </style>
 </body></html>
