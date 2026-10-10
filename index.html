@@ -336,10 +336,10 @@ body{background:var(--paper);color:var(--ink);font-family:Acumin,Arial,sans-seri
 
 <script>
 const DEFAULT_PRODUCTS=[
-{id:1,n:"Bacon de Pernil",p:58.90,u:"kg",c:"defumados",d:"Bacon suíno defumado artesanal"},
-{id:3,n:"Costela Defumada",p:74.90,u:"kg",c:"defumados",d:"Costela suína com defumação artesanal"},
+{id:1,n:"Bacon de Pernil",p:74.90,u:"kg",c:"defumados",d:"Bacon suíno defumado artesanal"},
+{id:3,n:"Costela Defumada",p:82.00,u:"kg",c:"defumados",d:"Costela suína com defumação artesanal"},
 {id:4,n:"Linguiça de Pernil Defumado Naturalmente",p:44.90,u:"kg",c:"defumados",d:"Linguiça de pernil defumado naturalmente"},
-{id:5,n:"Lombo Defumado",p:89.90,u:"kg",c:"defumados",d:"Lombo suíno defumado"},
+{id:5,n:"Lombo Defumado",p:129.00,u:"kg",c:"defumados",d:"Lombo suíno defumado"},
 {id:6,n:"Carré Defumado",p:49.90,u:"kg",c:"defumados",d:"Carré suíno para a brasa"},
 {id:7,n:"Pé Defumado",p:37.90,u:"kg",c:"defumados",d:"Pé suíno defumado"},
 {id:8,n:"Rabo Defumado",p:49.90,u:"kg",c:"defumados",d:"Rabo suíno defumado"},
@@ -377,7 +377,7 @@ async function loadRemoteProducts(){
     if(!r.ok)return false;
     const data=await r.json();
     if(!Array.isArray(data.products)||!data.products.length)return false;
-    const remoteProducts=sanitizeCatalog(data.products.map(x=>{const d=DEFAULT_PRODUCTS.find(y=>y.id===x.id||y.n===x.n);return {...(d||{}),...x,img:''}}));
+    const remoteProducts=sanitizeCatalog(data.products.map(x=>{const d=DEFAULT_PRODUCTS.find(y=>y.id===x.id||y.n===x.n);return {...(d||{}),...x,p:({1:74.90,3:82.00,5:129.00}[x.id]??x.p),img:''}}));
     if(!remoteProducts.length)return false;
     products=remoteProducts;
     localStorage.setItem('dornelas_emporio_produtos_v5',JSON.stringify(products));
@@ -389,7 +389,7 @@ function loadProducts(){
   if(!raw)return DEFAULT_PRODUCTS.map(x=>({...x}));
   try{
     const saved=JSON.parse(raw);
-    return saved.map(x=>{const d=DEFAULT_PRODUCTS.find(y=>y.id===x.id||y.n===x.n);return {...(d||{}),...x,img:x.img||((d&&d.img)||'')}});
+    return saved.map(x=>{const d=DEFAULT_PRODUCTS.find(y=>y.id===x.id||y.n===x.n);return {...(d||{}),...x,p:({1:74.90,3:82.00,5:129.00}[x.id]??x.p),img:x.img||((d&&d.img)||'')}});
   }catch(e){return DEFAULT_PRODUCTS.map(x=>({...x}));}
 }
 const REMOVED_PRODUCT_IDS=new Set([12,15,17,18,20]);
