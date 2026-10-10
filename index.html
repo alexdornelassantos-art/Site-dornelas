@@ -426,10 +426,12 @@ let cart=JSON.parse(localStorage.getItem('dornelas_cart_v1')||'{}');
 const money=v=>Number(v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 const esc=s=>String(s??'').replace(/[&<>'"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[m]));
 async function productImage(x){
-  const n=String(x?.n||'').toLowerCase();
+  const direct=String(x && x.img || '').trim();
+  if(direct.startsWith('https://')||direct.startsWith('http://')||direct.startsWith('data:image/'))return direct;
+  const n=String(x && x.n || '').toLowerCase();
   const U='https://images.unsplash.com/';
-  if(n.includes('bacon')) return U+'photo-1694983361629-0363ab0d1b49?auto=format&fit=crop&w=900&q=85';
-  if(n.includes('feijoada')) return 'https://www.celebritycruises.com/blog/content/uploads/2022/08/south-american-food-feijoada-1536x1026.jpg';
+  if(n.includes('bacon'))return U+'photo-1694983361629-0363ab0d1b49?auto=format&fit=crop&w=900&q=85';
+  if(n.includes('feijoada'))return 'https://www.celebritycruises.com/blog/content/uploads/2022/08/south-american-food-feijoada-1536x1026.jpg';
   return '';
 }
 
@@ -493,18 +495,69 @@ function isGrandeVitoria(city){return grandeVitoria.includes(normalizeCity(city)
 function orderItems(){return cartLines().map(l=>({id:l.x.id,n:l.x.n,qty:l.qty,p:Number(l.x.p)||0,u:l.x.u||'kg',kit:l.x.kit||'',variant:l.variant,weight_g:['weight','piece'].includes(productMode(l.x))?Number(String(l.variant).replace(/^w:/,''))||1000:null,line_total:lineTotal(l)}))}
 function orderTotal(){return orderItems().reduce((s,x)=>s+x.line_total,0)}
 function deliveryConfig(){try{const c=JSON.parse(localStorage.getItem('dornelas_delivery_config')||'null');if(c&&typeof c==='object')return c}catch(e){}return {provider:'Entrega local',defaultFee:Number(localStorage.getItem('dornelas_delivery_fee')||0),freeAbove:0,fees:{}}}
-function deliveryFee(city){return null}
+function deliveryFee(city){
+  if(!isGrandeVitoria(city))return null;
+  const key=normalizeCity(city),c=deliveryConfig(),fees=c.fees&&typeof c.fees==='object'?c.fees:{};
+  let fee;
+  if(Object.prototype.hasOwnProperty.call(fees,key)&&Number.isFinite(Number(fees[key])))fee=Number(fees[key]);
+  else{
+    const defaults={'vila velha':10,'cariacica':18,'serra':25};
+    if(Object.prototype.hasOwnProperty.call(defaults,key))fee=defaults[key];
+    else if(Number(c.defaultFee)>0)fee=Number(c.defaultFee);
+    else return null;
+  }
+  if(Number(c.freeAbove)>0&&orderTotal()>=Number(c.freeAbove))return 0;
+  return fee;
+}
 function deliveryProvider(city){return isGrandeVitoria(city)?(deliveryConfig().provider||'Entrega local'):''}
 function couponList(){try{const raw=localStorage.getItem('dornelas_coupons');if(raw!==null){const a=JSON.parse(raw);if(Array.isArray(a))return a}}catch(e){}return [{code:'DORNELA5',type:'percent',value:5,min:0,active:true}]}
 function activeCoupons(){return couponList().filter(c=>c&&c.active!==false)}
 function couponData(){return {code:(document.getElementById('coCoupon')?.value||'').trim().toUpperCase()}}
 function calculateDiscount(){return {code:'',amount:0,coupon:null}}
 function applyCoupon(){const r=calculateDiscount();const msg=document.getElementById('couponMsg');if(!r.code){msg.textContent='Digite um cupom.';msg.className='coupon-msg error';return updateCheckoutTotals()}if(r.error){msg.textContent=r.error;msg.className='coupon-msg error';return updateCheckoutTotals()}msg.textContent=`Cupom ${r.code} aplicado: -${money(r.amount)}.`;msg.className='coupon-msg ok';updateCheckoutTotals()}
-function updateCheckoutTotals(){const city=document.getElementById('coCity').value;const fee=isGrandeVitoria(city)?(deliveryFee(city)||0):null;const disc=calculateDiscount().amount||0;document.getElementById('checkoutDiscount').textContent=disc?'- '+money(disc):'R$ 0,00';document.getElementById('checkoutDeliveryFee').textContent=fee===null?'A consultar':(fee===0?'Grátis':money(fee));document.getElementById('checkoutGrandTotal').textContent=money(Math.max(0,orderTotal()-disc+(fee||0)))}
-function grandTotal(d){const disc=calculateDiscount().amount||0;return Math.max(0,orderTotal()-disc+(isGrandeVitoria(d.city)?(deliveryFee(d.city)||0):0))}
+function updateCheckoutTotals(){
+  const city=document.getElementById('coCity').value;
+  const fee=isGrandeVitoria(city)?deliveryFee(city):null;
+  const disc=calculateDiscount().amount||0;
+  document.getElementById('checkoutDiscount').textContent=disc?'- '+money(disc):'R$ 0,00';
+  document.getElementById('checkoutDeliveryFee').textContent=fee===null?'A consultar':(fee===0?'Grátis':money(fee));
+  document.getElementById('checkoutGrandTotal').textContent=fee===null?'A confirmar':money(Math.max(0,orderTotal()-disc+fee));
+}
+function grandTotal(d){
+  if(!isGrandeVitoria(d.city))return null;
+  const fee=deliveryFee(d.city);
+  if(fee===null)return null;
+  const disc=calculateDiscount().amount||0;
+  return Math.max(0,orderTotal()-disc+fee);
+}
 function openCheckout(){const items=orderItems();if(!items.length)return alert('Adicione algum produto ao pedido.');document.getElementById('checkoutSummary').innerHTML=items.map(x=>`<div class="co-line"><span>${x.qty}x ${esc(x.n)}${x.weight_g?`<small>${x.weight_g>=1000?x.weight_g/1000+' kg':x.weight_g+' g'} por unidade</small>`:''}</span><b>${x.p?money(x.line_total):'A consultar'}</b></div>`).join('');loadCheckoutDraft();document.getElementById('coCoupon').value='';document.getElementById('couponMsg').textContent='';document.getElementById('couponMsg').className='coupon-msg';document.getElementById('checkoutProductsTotal').textContent=money(orderTotal());document.getElementById('checkoutModal').classList.add('show');updateDeliveryRoute()}
 function closeCheckout(){document.getElementById('checkoutModal').classList.remove('show')}
-function updateDeliveryRoute(){const city=document.getElementById('coCity').value;const box=document.getElementById('deliveryRoute');const pay=document.getElementById('payOnlineBtn');if(!city){box.className='delivery-route';box.innerHTML='Informe a cidade para verificarmos a modalidade de entrega.';pay.disabled=true;pay.textContent='CONTINUAR PARA PAGAMENTO';updateCheckoutTotals();return}if(isGrandeVitoria(city)){box.className='delivery-route local';box.innerHTML='<b>✓ Entrega na Grande Vitória</b><span>Frete: <b>Sob consulta.</b></span><span>Entrega de segunda a sábado, em até 1 dia após a confirmação.</span>';pay.disabled=false;pay.textContent='CONTINUAR PARA PAGAMENTO'}else{box.className='delivery-route outside';box.innerHTML='<b>📦 Fora da área de entrega direta</b><span>Vamos consultar transportadora, prazo e frete com o vendedor.</span>';pay.disabled=false;pay.textContent='CONSULTAR ENVIO PELO WHATSAPP'}updateCheckoutTotals()}
+function updateDeliveryRoute(){
+  const city=document.getElementById('coCity').value.trim();
+  const box=document.getElementById('deliveryRoute');
+  const pay=document.getElementById('payOnlineBtn');
+  const online=!!(localStorage.getItem('dornelas_payment_endpoint')||'').trim();
+  if(!city){
+    box.className='delivery-route';
+    box.innerHTML='Informe a cidade para verificarmos a modalidade de entrega.';
+    pay.disabled=true;pay.textContent='INFORME A CIDADE';
+    updateCheckoutTotals();return;
+  }
+  if(isGrandeVitoria(city)){
+    const fee=deliveryFee(city);
+    box.className='delivery-route local';
+    box.innerHTML=fee===null
+      ?'<b>✓ Atendemos a Grande Vitória</b><span>Frete sob consulta para esta cidade. Confirme o valor antes de concluir.</span><span>Entrega de segunda a sábado; prazo de até 1 dia após a confirmação.</span>'
+      :'<b>✓ Entrega na Grande Vitória</b><span>Frete: <b>'+(fee===0?'Grátis':money(fee))+'</b></span><span>Entrega de segunda a sábado; prazo de até 1 dia após a confirmação.</span>';
+    pay.disabled=false;
+    pay.textContent=fee===null?'CONSULTAR FRETE PELO WHATSAPP':(online?'IR PARA PAGAMENTO SEGURO':'FINALIZAR PELO WHATSAPP');
+  }else{
+    box.className='delivery-route outside';
+    box.innerHTML='<b>📦 Vamos consultar o envio</b><span>O vendedor confirma disponibilidade, transportadora, prazo e frete antes de fechar o pedido.</span>';
+    pay.disabled=false;pay.textContent='CONSULTAR ENVIO PELO WHATSAPP';
+  }
+  updateCheckoutTotals();
+}
 function checkoutData(){return {name:coName.value.trim(),phone:coPhone.value.trim(),type:coType.value,cep:coCep.value.trim(),street:coStreet.value.trim(),number:coNumber.value.trim(),complement:coComplement.value.trim(),neighborhood:coNeighborhood.value.trim(),city:coCity.value.trim(),state:coState.value.trim().toUpperCase(),reference:coReference.value.trim()}}
 function validateCheckout(){const d=checkoutData();for(const k of ['name','phone','type','street','number','neighborhood','city','state'])if(!d[k]){alert('Preencha todos os campos obrigatórios.');return null}if(d.state.length!==2){alert('Informe a UF com 2 letras.');return null}const c=calculateDiscount();if(c.code&&c.error){alert(c.error);return null}return d}
 function saveCheckoutDraft(d){localStorage.setItem('dornelas_checkout_draft',JSON.stringify(d))}
@@ -532,8 +585,39 @@ async function lookupCep(){
  }
 }
 function loadCheckoutDraft(){try{const d=JSON.parse(localStorage.getItem('dornelas_checkout_draft')||'null');if(!d)return;Object.entries({coName:d.name,coPhone:d.phone,coType:d.type,coCep:d.cep,coStreet:d.street,coNumber:d.number,coComplement:d.complement,coNeighborhood:d.neighborhood,coCity:d.city,coState:d.state,coReference:d.reference}).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.value=v||''})}catch(e){}}
-function whatsappOrder(d,reason){const n=localStorage.getItem('dornelas_whatsapp')||'5527998504468';if(!n)return alert('WhatsApp ainda não configurado. Abra o Painel.');const lines=orderItems().map(x=>`${x.qty}x ${x.n}${x.weight_g?` (${x.weight_g>=1000?x.weight_g/1000+'kg':x.weight_g+'g'} cada)`:''}${x.p?` — ${money(x.line_total)}`:' — preço a consultar'}`);const address=`${d.type}, ${d.street}, ${d.number}${d.complement?', '+d.complement:''}, ${d.neighborhood}, ${d.city}/${d.state}${d.cep?' — CEP '+d.cep:''}${d.reference?' — Ref.: '+d.reference:''}`;const disc=calculateDiscount();const discountLine=disc.amount?`\nCupom: ${disc.code} — desconto: -${money(disc.amount)}`:'';const fee=isGrandeVitoria(d.city)?(deliveryFee(d.city)||0):null;const deliveryLine=fee===null?'\nFrete: A consultar':`\nEntrega (${deliveryProvider(d.city)}): ${fee?money(fee):'Grátis'}`;const text=`Olá, Dornela’s Empório! Quero finalizar este pedido pelo atendimento.\n\n${lines.join('\n')}\n\nProdutos: ${money(orderTotal())}${discountLine}${deliveryLine}\nTotal estimado: ${money(grandTotal(d))}\n\nCliente: ${d.name}\nWhatsApp: ${d.phone}\nEndereço: ${address}\n\n${reason||'Quero confirmar entrega e pagamento.'}`;window.open('https://wa.me/'+n.replace(/\D/g,'')+'?text='+encodeURIComponent(text),'_blank')}
-async function payOnline(){const d=validateCheckout();if(!d)return;saveCheckoutDraft(d);if(!isGrandeVitoria(d.city))return whatsappOrder(d,'Meu endereço está fora da Grande Vitória. Quero consultar frete, prazo e possibilidade de envio.');const endpoint=localStorage.getItem('dornelas_payment_endpoint')||'';if(!endpoint){alert('O pagamento online ainda não está conectado ao Mercado Pago. Vamos finalizar pelo WhatsApp por enquanto.');return whatsappOrder(d,'Quero finalizar este pedido e combinar o pagamento e a entrega.')}const disc=calculateDiscount();try{const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer:d,items:orderItems(),products_total:orderTotal(),discount_code:disc.code||null,discount_amount:disc.amount||0,delivery_fee:deliveryFee(d.city)||0,total_amount:grandTotal(d),source:'dornelas-emporio'})});const data=await r.json();if(!r.ok||!data.checkout_url)throw new Error(data.message||'Pagamento indisponível');window.location.href=data.checkout_url}catch(e){alert('O pagamento não abriu agora. Vamos encaminhar o pedido para o vendedor.');whatsappOrder(d,'Tentei pagar online, mas o pagamento não abriu. Por favor, me ajude a finalizar o pedido.')}}
+function whatsappOrder(d,reason){
+  const n=localStorage.getItem('dornelas_whatsapp')||'5527998504468';
+  if(!n)return alert('WhatsApp ainda não configurado. Abra o Painel.');
+  const lines=orderItems().map(x=>x.qty+'x '+x.n+(x.weight_g?' ('+(x.weight_g>=1000?x.weight_g/1000+'kg':x.weight_g+'g')+' cada)':'')+(x.p?' — '+money(x.line_total):' — preço a consultar'));
+  const address=d.type+', '+d.street+', '+d.number+(d.complement?', '+d.complement:'')+', '+d.neighborhood+', '+d.city+'/'+d.state+(d.cep?' — CEP '+d.cep:'')+(d.reference?' — Ref.: '+d.reference:'');
+  const disc=calculateDiscount();
+  const discountLine=disc.amount?'\nCupom: '+disc.code+' — desconto: -'+money(disc.amount):'';
+  const fee=isGrandeVitoria(d.city)?deliveryFee(d.city):null;
+  const deliveryLine=fee===null?'\nFrete: A consultar':'\nEntrega ('+deliveryProvider(d.city)+'): '+(fee===0?'Grátis':money(fee));
+  const total=grandTotal(d);
+  const totalLine=total===null?'Total parcial, sem frete: '+money(Math.max(0,orderTotal()-(disc.amount||0)))+' — valor final a confirmar':'Total estimado: '+money(total);
+  const text='Olá, Dornela’s Empório! Quero finalizar este pedido pelo atendimento.\n\n'+lines.join('\n')+'\n\nProdutos: '+money(orderTotal())+discountLine+deliveryLine+'\n'+totalLine+'\n\nCliente: '+d.name+'\nWhatsApp: '+d.phone+'\nEndereço: '+address+'\n\n'+(reason||'Quero confirmar entrega e pagamento.');
+  window.open('https://wa.me/'+n.replace(/\D/g,'')+'?text='+encodeURIComponent(text),'_blank');
+}
+async function payOnline(){
+  const d=validateCheckout();if(!d)return;
+  saveCheckoutDraft(d);
+  if(!isGrandeVitoria(d.city))return whatsappOrder(d,'Meu endereço está fora da Grande Vitória. Quero consultar frete, prazo e possibilidade de envio.');
+  const fee=deliveryFee(d.city);
+  if(fee===null)return whatsappOrder(d,'Quero confirmar o valor do frete para minha cidade antes de fechar o pedido.');
+  const endpoint=(localStorage.getItem('dornelas_payment_endpoint')||'').trim();
+  if(!endpoint)return whatsappOrder(d,'Quero finalizar este pedido pelo WhatsApp e combinar a forma de pagamento e a entrega.');
+  const disc=calculateDiscount();
+  try{
+    const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({customer:d,items:orderItems(),products_total:orderTotal(),discount_code:disc.code||null,discount_amount:disc.amount||0,delivery_fee:fee,total_amount:grandTotal(d),source:'dornelas-emporio'})});
+    const data=await r.json();
+    if(!r.ok||!data.checkout_url)throw new Error(data.message||'Pagamento indisponível');
+    window.location.href=data.checkout_url;
+  }catch(e){
+    alert('O pagamento não abriu agora. Vamos encaminhar o pedido para o vendedor.');
+    whatsappOrder(d,'Tentei pagar online, mas o pagamento não abriu. Por favor, me ajude a finalizar o pedido.');
+  }
+}
 function manageCoupons(){const current=activeCoupons();const desc=current.length?current.map(c=>`${c.code} — ${c.type==='fixed'?money(Number(c.value||0)):Number(c.value||0)+'%'}${Number(c.min||0)?' — mínimo '+money(Number(c.min)):''}`).join('\n'):'Nenhum cupom ativo.';const action=prompt('Cupons ativos:\n\n'+desc+'\n\nDigite 1 para criar/editar um cupom\nDigite 2 para remover todos os cupons.','1');if(action==='2'){localStorage.setItem('dornelas_coupons','[]');alert('Cupons removidos.');return}if(action!=='1')return;const code=(prompt('Código do cupom:','DORNELA5')||'').trim().toUpperCase();if(!code)return;const type=(prompt('Tipo de desconto: digite % para percentual ou R$ para valor fixo.','%')||'%').trim();const value=Number(String(prompt(type==='R$'?'Valor do desconto em R$':'Percentual de desconto',type==='R$'?'10':'5')||'').replace(',','.'));if(!Number.isFinite(value)||value<=0)return alert('Valor inválido.');const min=Number(String(prompt('Pedido mínimo em R$ (0 = sem mínimo):','0')||'0').replace(',','.'));if(!Number.isFinite(min)||min<0)return alert('Pedido mínimo inválido.');const coupon={code,type:type==='R$'?'fixed':'percent',value,min,active:true};localStorage.setItem('dornelas_coupons',JSON.stringify([coupon]));alert(`Cupom ${code} configurado com sucesso.`)}
 function setPaymentEndpoint(){const v=prompt('Endpoint HTTPS do backend de pagamento (Mercado Pago):',localStorage.getItem('dornelas_payment_endpoint')||'');if(v!==null){localStorage.setItem('dornelas_payment_endpoint',v.trim());alert(v.trim()?'Endpoint salvo.':'Endpoint removido.')}}
 function setDeliveryFee(){const c=deliveryConfig();const provider=prompt('Modalidade/provedor de entrega (apenas informativo):\nEx.: 99Entrega, Uber Envios, Motoboy próprio, iFood ou Entrega local.',c.provider||'Entrega local');if(provider===null)return;const def=prompt('Taxa padrão para a Grande Vitória (R$). Use 0 para grátis:',String(Number(c.defaultFee||0).toFixed(2)).replace('.',','));if(def===null)return;const n=Number(String(def).replace(',','.'));if(!Number.isFinite(n)||n<0)return alert('Informe uma taxa válida.');const free=prompt('Frete grátis a partir de quanto? (R$ 0 = nunca):',String(Number(c.freeAbove||0).toFixed(2)).replace('.',','));if(free===null)return;const fa=Number(String(free).replace(',','.'));if(!Number.isFinite(fa)||fa<0)return alert('Informe um valor válido.');const fees={...(c.fees||{})};const cities=['Vila Velha','Vitória','Serra','Cariacica','Viana','Fundão','Guarapari'];for(const city of cities){const current=Object.prototype.hasOwnProperty.call(fees,normalizeCity(city))?fees[normalizeCity(city)]:n;const v=prompt(`Taxa para ${city} (R$). Deixe em branco para usar a taxa padrão de ${money(n)}:`,String(current).replace('.',','));if(v===null)return;const txt=String(v).trim();if(txt===''){delete fees[normalizeCity(city)];continue}const val=Number(txt.replace(',','.'));if(!Number.isFinite(val)||val<0)return alert('Taxa inválida para '+city+'.');fees[normalizeCity(city)]=val}const cfg={provider:provider.trim()||'Entrega local',defaultFee:n,freeAbove:fa,fees};localStorage.setItem('dornelas_delivery_config',JSON.stringify(cfg));localStorage.setItem('dornelas_delivery_fee',n.toFixed(2));alert('Configuração de entrega salva. O checkout calculará a taxa conforme a cidade e o frete grátis configurado.')}
